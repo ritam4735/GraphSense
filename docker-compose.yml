@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: graphsense-api
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./server/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Run once to seed data, then exits
+  seed:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: graphsense-seed
+    command: node seed.js
+    env_file:
+      - ./server/.env
+    profiles:
+      - seed          # only runs with: docker compose --profile seed up seed
+    depends_on:
+      - api

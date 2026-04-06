@@ -1,0 +1,87 @@
+{
+  "folders": [
+    { "name": "GraphSense (Root)",  "path": "." },
+    { "name": "Server",             "path": "./server" },
+    { "name": "Client",             "path": "./client" }
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "emmet.includeLanguages": { "javascript": "javascriptreact" }
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "🟢 Start Mock Server",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/server/index.mock.js",
+        "cwd": "${workspaceFolder}/server",
+        "envFile": "${workspaceFolder}/server/.env",
+        "runtimeArgs": [],
+        "console": "integratedTerminal",
+        "restart": true
+      },
+      {
+        "name": "🔵 Start Real Server (TigerGraph required)",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/server/index.js",
+        "cwd": "${workspaceFolder}/server",
+        "envFile": "${workspaceFolder}/server/.env",
+        "console": "integratedTerminal",
+        "restart": true
+      }
+    ],
+    "compounds": [
+      {
+        "name": "🚀 Start Mock Server + Client",
+        "configurations": ["🟢 Start Mock Server"]
+      }
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Install Server Dependencies",
+        "type": "shell",
+        "command": "npm install",
+        "options": { "cwd": "${workspaceFolder}/server" },
+        "group": "build"
+      },
+      {
+        "label": "Install Client Dependencies",
+        "type": "shell",
+        "command": "npm install",
+        "options": { "cwd": "${workspaceFolder}/client" },
+        "group": "build"
+      },
+      {
+        "label": "▶️  Run Mock Server",
+        "type": "shell",
+        "command": "node index.mock.js",
+        "options": { "cwd": "${workspaceFolder}/server" },
+        "group": "test",
+        "presentation": { "panel": "dedicated", "reveal": "always" }
+      },
+      {
+        "label": "▶️  Run React Client",
+        "type": "shell",
+        "command": "npm start",
+        "options": { "cwd": "${workspaceFolder}/client" },
+        "group": "test",
+        "presentation": { "panel": "dedicated", "reveal": "always" }
+      }
+    ]
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "christian-kohler.path-intellisense",
+      "ms-vscode.vscode-json"
+    ]
+  }
+}

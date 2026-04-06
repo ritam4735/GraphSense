@@ -1,0 +1,16 @@
+{
+  "name": "graphsense",
+  "version": "1.0.0",
+  "description": "Multi-Hop Recommendation Engine using TigerGraph",
+  "private": true,
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm start",
+    "build:client": "cd client && npm run build",
+    "start:server": "cd server && npm start"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

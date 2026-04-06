@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: graphsense-api
+    env: node
+    region: oregon
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: TG_HOST
+        sync: false          # Set manually in Render dashboard
+      - key: TG_GRAPH
+        value: GraphSense
+      - key: TG_TOKEN
+        sync: false          # Set manually in Render dashboard — keep secret

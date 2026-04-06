@@ -1,0 +1,80 @@
+name: GraphSense CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Backend checks ─────────────────────────────────────────
+  backend:
+    name: Backend — Install & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check required env vars are documented
+        run: |
+          grep -q "TG_HOST"  .env.example || (echo "TG_HOST missing from .env.example" && exit 1)
+          grep -q "TG_TOKEN" .env.example || (echo "TG_TOKEN missing from .env.example" && exit 1)
+          echo "✅ .env.example looks good"
+
+      - name: Verify server starts (syntax check)
+        run: |
+          # Set dummy env vars so the startup guard doesn't exit 1
+          TG_HOST=https://test.i.tgcloud.io TG_TOKEN=dummy timeout 3 node index.js \
+            || [ $? -eq 124 ] && echo "✅ Server starts correctly"
+
+  # ── Frontend checks ────────────────────────────────────────
+  frontend:
+    name: Frontend — Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        env:
+          REACT_APP_API_URL: https://graphsense-api.onrender.com
+          CI: false          # suppress CRA warnings-as-errors
+        run: npm run build
+
+      - name: Verify build output exists
+        run: |
+          test -f build/index.html || (echo "build/index.html missing" && exit 1)
+          echo "✅ Build succeeded"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-build
+          path: client/build/
+          retention-days: 7
