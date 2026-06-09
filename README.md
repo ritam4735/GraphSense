@@ -1,24 +1,23 @@
 # GraphSense 🕸️
-### Multi-Hop Recommendation Engine — Powered by TigerGraph
+### Multi-Hop Recommendation Engine — Powered by Neo4j
 
-> Personalized product recommendations driven by real-time GSQL graph traversal on TigerGraph Cloud.
-> Every result is read live from the graph — not cached, not mocked, not pre-computed.
+> A generalized, domain-agnostic recommendation platform driven by real-time Cypher graph traversal on Neo4j. Every result is computed live from the graph using orthogonal relationship paths.
 
 ---
 
 ## What GraphSense Does
 
-GraphSense connects to a live **TigerGraph** instance and runs multi-hop GSQL queries
-to generate product recommendations by following real relationship paths in the graph:
+GraphSense connects to a live **Neo4j** instance and runs highly optimized multi-hop Cypher queries to generate personalized recommendations by following real relationship paths in the graph. 
 
-- Who you follow → what they bought → score +3.0
-- What you viewed → similar products → score +(similarity × 2.0)
-- Friends of friends who bought something → score +1.0
-- Category affinity boost → score +0.5
-- Rating quality bonus per product
+Because the architecture is domain-agnostic, it can recommend **Products**, **Coding Problems (like KodeChirp)**, or **Content**.
 
-All of this runs as **a single GSQL query** (`recommendProducts`) inside TigerGraph,
-with no intermediate storage, no batch jobs, and no pre-computation.
+Example Product Scoring Logic:
+- Who you follow → what they interacted with → base score 3.0
+- What you interacted with → similar entities → base score (similarity × 2.0)
+- Friends of friends who interacted → base score 1.0
+- Quality modifier (e.g., rating bonus)
+
+All of this runs as **a single Cypher query** using `UNION ALL` inside Neo4j, with no intermediate storage, no batch jobs, and no pre-computation.
 
 ---
 
@@ -26,65 +25,55 @@ with no intermediate storage, no batch jobs, and no pre-computation.
 
 | Layer | Technology |
 |-------|-----------|
-| Graph Database | TigerGraph Cloud |
-| Query Language | GSQL (multi-hop, accumulators) |
-| Backend | Node.js + Express |
+| Graph Database | Neo4j (AuraDB or Local) |
+| Query Language | Cypher (UNION ALL, OPTIONAL MATCH) |
+| Backend | Node.js + Express (Domain-Driven Architecture) |
+| Security | Zod (Validation), express-rate-limit |
 | Frontend | React 18 + vis-network |
-| HTTP Client | Axios |
-| Deployment: API | Render |
-| Deployment: UI | Vercel |
+| Driver | neo4j-driver |
 
 ---
 
 ## Graph Schema
 
-```
-Vertices
-  User      — userId, name, age, location
-  Product   — productId, name, price, category, rating
-  Category  — categoryId, name
+The core schema is decoupled via a `GraphRepository` interface. For the default demo, it uses:
 
-Edges
-  follows    User     → User      (social graph)
-  bought     User     → Product   (purchase history)
-  viewed     User     → Product   (behavioural signal)
-  similar_to Product  ↔ Product   (content similarity score)
-  belongs_to Product  → Category  (taxonomy)
+```
+Nodes
+  User      — userId [UNIQUE], name, age, location
+  Product   — productId [UNIQUE], name, price, category, rating
+  Category  — categoryId [UNIQUE], name
+
+Relationships
+  FOLLOWS    User     → User      (social graph)
+  BOUGHT     User     → Product   (strong interaction)
+  VIEWED     User     → Product   (weak interaction)
+  SIMILAR_TO Product  ↔ Product   (content similarity score)
+  BELONGS_TO Product  → Category  (taxonomy)
 ```
 
 ---
 
-## Folder Structure
+## Architecture
 
 ```
 graphsense/
 ├── client/                   # React frontend
-│   ├── src/
-│   │   ├── App.js            # UI: recommendations, graph viz, trending
-│   │   └── App.css
+│   ├── src/App.js            # UI: recommendations, graph viz, trending
 │   └── package.json
 │
-├── server/
-│   ├── index.js              # Express API — all routes call TigerGraph
-│   ├── seed.js               # Pushes CSV data into TigerGraph via REST++
-│   ├── test-connection.js    # Verifies TigerGraph credentials + queries
+├── server/                   # Clean Domain-Driven Backend
+│   ├── src/
+│   │   ├── app.js            # Express config & security middleware
+│   │   ├── server.js         # Entry point
+│   │   ├── controllers/      # Route handlers
+│   │   ├── services/         # Business logic
+│   │   ├── repositories/     # GraphRepository interface & Neo4j implementation
+│   │   ├── database/         # Neo4j Driver pool & Seed scripts
+│   │   └── middleware/       # Zod validation & Global error handlers
 │   └── package.json
 │
 ├── data/                     # Sample dataset (8 CSV files)
-│   ├── users.csv
-│   ├── products.csv
-│   ├── categories.csv
-│   ├── follows.csv
-│   ├── bought.csv
-│   ├── viewed.csv
-│   ├── similar.csv
-│   └── belongs_to.csv
-│
-├── tigergraph/
-│   ├── schema_and_queries.gsql   # Full schema + 4 GSQL queries
-│   ├── load_data.gsql            # Alternative: GSQL loading jobs
-│   └── SETUP.md                  # Step-by-step TigerGraph setup
-│
 └── README.md
 ```
 
@@ -92,51 +81,39 @@ graphsense/
 
 ## Local Setup
 
-### Prerequisites
-- Node.js 18+
-- A TigerGraph Cloud account (free at tgcloud.io)
+### 1 — Start Neo4j
 
-### 1 — Set up TigerGraph
+You can use Neo4j Desktop, Neo4j AuraDB (free tier), or Docker:
+```bash
+docker run -d --name neo4j -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password neo4j:latest
+```
 
-Follow `tigergraph/SETUP.md` completely:
-1. Create cluster on TigerGraph Cloud
-2. Run `schema_and_queries.gsql` in GSQL Studio
-3. Generate a bearer token
-
-### 2 — Configure the server
+### 2 — Configure the backend
 
 ```bash
 cd server
 cp .env.example .env
-# Fill in TG_HOST, TG_TOKEN, TG_GRAPH
+# Set NEO4J_URI=neo4j://localhost:7687
+# Set NEO4J_USER=neo4j
+# Set NEO4J_PASSWORD=password
 ```
 
-### 3 — Verify TigerGraph connection
+### 3 — Install & Seed Data
 
 ```bash
 npm install
-npm run test:connection
-```
-
-All checks must pass before continuing.
-
-### 4 — Seed the graph
-
-```bash
 npm run seed
 ```
+*This will create all UNIQUE constraints and load the CSV data using optimized Cypher `MERGE` and `UNWIND` statements.*
 
-Reads all CSV files and upserts 10 users, 15 products, 3 categories,
-and all relationship edges directly into TigerGraph via REST++.
-
-### 5 — Start the backend
+### 4 — Start the backend
 
 ```bash
 npm run dev
 # API running at http://localhost:4000
 ```
 
-### 6 — Start the frontend
+### 5 — Start the frontend
 
 ```bash
 cd ../client
@@ -151,17 +128,15 @@ npm start
 
 ## API Endpoints
 
-All endpoints call TigerGraph in real time. `source: "tigergraph"` is always present in responses.
+All endpoints use the `Neo4jRepository` in real time.
 
-| Method | Endpoint | TigerGraph Query |
+| Method | Endpoint | Cypher Query Logic |
 |--------|----------|-----------------|
-| GET | `/health` | Echo ping |
-| GET | `/recommend/:userId` | `recommendProducts` |
-| GET | `/similar/:userId` | `similarUsers` |
-| GET | `/trending` | `trendingProducts` |
-| GET | `/graph/:userId` | `userGraph` |
-| GET | `/users` | REST++ vertices/User |
-| GET | `/products` | REST++ vertices/Product |
+| GET | `/health` | Driver `verifyConnectivity()` |
+| GET | `/recommend/:userId` | `recommendEntities` (Multi-hop UNION ALL) |
+| GET | `/similar/:userId` | `getSimilarEntities` (Jaccard approximation) |
+| GET | `/trending` | `getTrendingEntities` (Relationship counts) |
+| GET | `/graph/:userId` | `getEntityGraph` (Local neighborhood paths) |
 
 Example:
 ```bash
@@ -173,83 +148,11 @@ curl http://localhost:4000/recommend/u1
   "count": 9,
   "recommendations": [
     { "productId": "p2", "name": "Mechanical Keyboard", "price": 129.99,
-      "score": 9.84, "reason": "Bought by users you follow" },
-    ...
+      "score": 9.84, "reason": "Bought by friends" }
   ],
-  "source": "tigergraph"
+  "source": "neo4j"
 }
 ```
-
----
-
-## GSQL Query: recommendProducts (core logic)
-
-```gsql
-CREATE QUERY recommendProducts(STRING userId) FOR GRAPH GraphSense {
-  -- Hop 1: seed user → follows → followed users
-  followedUsers = SELECT f FROM start:u -(follows)-> User:f;
-
-  -- Hop 2a: followed users → bought → candidate products   (+3.0 per hit)
-  recFromFollows = SELECT p
-    FROM followedUsers:f -(bought)-> Product:p
-    WHERE p NOT IN start.@alreadyBought
-    ACCUM @@scoreMap += (p -> 3.0);
-
-  -- Hop 2b: viewed products → similar_to → candidate products  (+similarity×2)
-  recFromViewed = SELECT s
-    FROM viewedByUser:p -(similar_to:e)-> Product:s
-    ACCUM @@scoreMap += (s -> e.similarity_score * 2.0);
-
-  -- Friends-of-friends boost  (+1.0)
-  recFromFoF = SELECT p
-    FROM followedFollowers:f2 -(bought)-> Product:p
-    ACCUM @@scoreMap += (p -> 1.0);
-
-  -- Rating quality bonus  (±0.3 per star above/below 3.0)
-  -- Top-10 ranked by final score
-  PRINT @@topRecs AS recommendations;
-}
-```
-
----
-
-## Deployment
-
-### Backend → Render
-
-1. Push `server/` to GitHub
-2. Render → New Web Service → connect repo
-3. Build: `npm install` · Start: `node index.js`
-4. Environment variables:
-   ```
-   TG_HOST=https://YOUR_CLUSTER.i.tgcloud.io
-   TG_GRAPH=GraphSense
-   TG_TOKEN=your_token
-   PORT=4000
-   ```
-
-### Frontend → Vercel
-
-1. Push `client/` to GitHub
-2. Vercel → New Project → connect repo
-3. Framework: Create React App · Output: `build`
-4. Environment variables:
-   ```
-   REACT_APP_API_URL=https://your-graphsense-api.onrender.com
-   ```
-
----
-
-## Screenshots
-
-> Add screenshots after deployment
-
-| Screen | File |
-|--------|------|
-| Recommendations view | `screenshots/recs.png` |
-| Graph visualization | `screenshots/graph.png` |
-| Trending products | `screenshots/trending.png` |
-| TigerGraph Studio — queries | `screenshots/gsql-studio.png` |
 
 ---
 

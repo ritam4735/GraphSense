@@ -4,33 +4,27 @@ Use this as your go-to reference. Check each item off before submitting.
 
 ---
 
-## Phase 1 — TigerGraph Cloud
+## Phase 1 — Neo4j AuraDB (Cloud)
 
-- [ ] Created a cluster on https://tgcloud.io (Free tier is fine)
-- [ ] Noted the cluster hostname (e.g. `https://abc123.i.tgcloud.io`)
-- [ ] Ran `schema_and_queries.gsql` in GSQL Studio — all blocks
-- [ ] Confirmed 3 vertex types visible in schema: User, Product, Category
-- [ ] Confirmed 5 edge types visible: follows, bought, viewed, similar_to, belongs_to
-- [ ] Ran `INSTALL QUERY` for all 4 queries
-- [ ] Confirmed all 4 queries appear under Queries panel in GSQL Studio
-- [ ] Generated a bearer token via `CREATE SECRET` + `/requesttoken`
-- [ ] Tested token manually with curl against `/echo/GraphSense` — got 200
+- [ ] Created a free instance on https://neo4j.com/cloud/aura/
+- [ ] Noted the connection URI (e.g. `neo4j+s://abc1234.databases.neo4j.io`)
+- [ ] Downloaded and saved the generated `.txt` file containing the password.
+- [ ] Tested connection via Neo4j Workspace (browser).
 
 ---
 
-## Phase 2 — Local Backend
+## Phase 2 — Local Backend & Seeding
 
 - [ ] Copied `server/.env.example` → `server/.env`
-- [ ] Set `TG_HOST` (no trailing slash, no port)
-- [ ] Set `TG_GRAPH=GraphSense`
-- [ ] Set `TG_TOKEN` (the bearer token from Phase 1)
-- [ ] Ran `npm run test:connection` — all checks green
-- [ ] Ran `npm run seed` — all 8 entities seeded, counts verified
-- [ ] Ran `npm run dev` — server started on port 4000
-- [ ] Tested `/health` → `{ "tigergraph": "connected" }`
-- [ ] Tested `/recommend/u1` → returns array with `"source": "tigergraph"`
-- [ ] Tested `/trending` → returns array with `"source": "tigergraph"`
-- [ ] Tested `/graph/u1` → returns nodes + edges arrays
+- [ ] Set `NEO4J_URI` (the AuraDB connection string)
+- [ ] Set `NEO4J_USER=neo4j`
+- [ ] Set `NEO4J_PASSWORD`
+- [ ] Ran `npm install` in `server/`
+- [ ] Ran `npm run seed` — constraints created and all nodes/edges seeded.
+- [ ] Ran `npm run dev` — server started on port 4000.
+- [ ] Tested `/health` → `{ "status": "ok", "database": "connected", "driver": "neo4j" }`
+- [ ] Tested `/recommend/u1` → returns array with `"source": "neo4j"`
+- [ ] Tested `/graph/u1` → returns nodes + edges arrays.
 
 ---
 
@@ -40,13 +34,9 @@ Use this as your go-to reference. Check each item off before submitting.
 - [ ] Set `REACT_APP_API_URL=http://localhost:4000`
 - [ ] Ran `npm install` in `client/`
 - [ ] Ran `npm start` — app opens at http://localhost:3000
-- [ ] Header shows "● Live" green badge (TigerGraph connected)
+- [ ] Header shows "● Live" green badge (Neo4j connected)
 - [ ] Typed `u1` and clicked Get Recommendations — results appeared
-- [ ] Recommendations show `reason` tags (not generic text)
 - [ ] Switched to Graph View — vis-network renders with real nodes
-- [ ] Switched to Trending — products shown from TigerGraph
-- [ ] Tested with `u2`, `u3` — different results each time
-- [ ] No browser console errors
 
 ---
 
@@ -57,15 +47,14 @@ Use this as your go-to reference. Check each item off before submitting.
 - [ ] Connected the GitHub repo
 - [ ] Set Root Directory: `server`
 - [ ] Set Build Command: `npm install`
-- [ ] Set Start Command: `node index.js`
+- [ ] Set Start Command: `npm start`
 - [ ] Added environment variables in Render dashboard:
-  - [ ] `TG_HOST`
-  - [ ] `TG_GRAPH=GraphSense`
-  - [ ] `TG_TOKEN`
+  - [ ] `NEO4J_URI`
+  - [ ] `NEO4J_USER=neo4j`
+  - [ ] `NEO4J_PASSWORD`
   - [ ] `PORT=4000`
 - [ ] Deploy succeeded — green checkmark in Render
 - [ ] Tested public URL: `https://graphsense-api.onrender.com/health` → connected
-- [ ] Tested public URL: `https://graphsense-api.onrender.com/recommend/u1` → live data
 
 ---
 
@@ -81,25 +70,24 @@ Use this as your go-to reference. Check each item off before submitting.
   - [ ] `REACT_APP_API_URL=https://graphsense-api.onrender.com`
 - [ ] Deploy succeeded
 - [ ] Opened the Vercel URL — header shows "● Live"
-- [ ] Ran a recommendation query — data comes from TigerGraph
+- [ ] Ran a recommendation query — data comes from Neo4j.
 
 ---
 
 ## Phase 6 — Final Validation
 
-- [ ] All API responses include `"source": "tigergraph"`
-- [ ] Graph visualization shows real nodes from TigerGraph (not placeholder data)
-- [ ] Trending products match the data seeded via `seed.js`
-- [ ] No mock data, no hardcoded fallbacks in production code
-- [ ] TigerGraph GSQL Studio shows query execution logs when UI is used
+- [ ] All API responses include `"source": "neo4j"`
+- [ ] Graph visualization shows real nodes from AuraDB.
+- [ ] Recommendation queries execute quickly (under 500ms).
+- [ ] Zod validation blocks invalid `userId` inputs.
+- [ ] Rate limiter headers are present in the network tab.
 
 ---
 
 ## Submission Checklist
 
 - [ ] GitHub repo is public
-- [ ] README includes: architecture, TigerGraph schema, GSQL query explanation
+- [ ] README includes: architecture, Neo4j schema, Cypher query explanation
 - [ ] Live demo URL is working at time of submission
-- [ ] TigerGraph Cloud cluster is running (not paused/deleted)
-- [ ] Video demo shows data coming from TigerGraph (show `/health` endpoint response)
-- [ ] PPT content covers Why TigerGraph slide specifically
+- [ ] Neo4j AuraDB instance is active (they pause automatically after a few days of inactivity on the free tier — unpause before demo!)
+- [ ] Video demo shows data coming from Neo4j.
