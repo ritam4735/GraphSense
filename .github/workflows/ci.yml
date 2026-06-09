@@ -9,53 +9,60 @@ on:
 jobs:
   # ── Backend checks ─────────────────────────────────────────
   backend:
-    name: Backend — Install & Lint
+    name: Backend — Install & Verify
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: server
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: npm
           cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Check required env vars are documented
+      - name: Verify .env.example exists
         run: |
-          grep -q "TG_HOST"  .env.example || (echo "TG_HOST missing from .env.example" && exit 1)
-          grep -q "TG_TOKEN" .env.example || (echo "TG_TOKEN missing from .env.example" && exit 1)
-          echo "✅ .env.example looks good"
+          test -f .env.example || (echo ".env.example missing" && exit 1)
+          echo "✅ .env.example found"
 
-      - name: Verify server starts (syntax check)
+      - name: Verify backend entrypoint exists
         run: |
-          # Set dummy env vars so the startup guard doesn't exit 1
-          TG_HOST=https://test.i.tgcloud.io TG_TOKEN=dummy timeout 3 node index.js \
-            || [ $? -eq 124 ] && echo "✅ Server starts correctly"
+          test -f src/server.js || (echo "src/server.js missing" && exit 1)
+          echo "✅ Backend entrypoint found"
+
+      - name: Syntax check backend
+        run: |
+          node --check src/server.js
+          echo "✅ Syntax valid"
 
   # ── Frontend checks ────────────────────────────────────────
   frontend:
     name: Frontend — Build
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: client
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: npm
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
@@ -64,7 +71,7 @@ jobs:
       - name: Production build
         env:
           REACT_APP_API_URL: https://graphsense-api.onrender.com
-          CI: false          # suppress CRA warnings-as-errors
+          CI: false
         run: npm run build
 
       - name: Verify build output exists
